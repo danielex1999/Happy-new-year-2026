@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Feliz 2026! ✨</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎆</text></svg>">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&display=swap');
+
+        :root {
+            --text-color: #fff;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Amatic SC', cursive;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(
+                to bottom,
+                #120018 0%,
+                #2b0a3d 45%,
+                #5a1c6b 100%
+            );
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .message-container {
+            position: absolute;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -15%);
+            z-index: 2;
+            text-align: center;
+            width: 100%;
+            pointer-events: none;
+        }
+
+        .message {
+            font-size: 150px;
+            font-weight: 700;
+            opacity: 0;
+            animation: textFadeIn 3s ease-out forwards;
+            text-shadow:
+                0 0 10px rgba(255, 182, 193, 0.9),
+                0 0 25px rgba(221, 160, 221, 0.6);
+        }
+
+        @keyframes textFadeIn {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .message {
+                font-size: 90px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="starrySky"></canvas>
+
+    <div class="message-container">
+        <div class="message">¡Feliz 2026!</div>
+    </div>
+
+    <script>
+        setTimeout(() => {
+    window.location.href = "love letter 2.html";
+}, 20000);
+        const canvas = document.getElementById('starrySky');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+
+        const stars = [];
+        const fireworks = [];
+        let lastFireworkTime = 0;
+        const fireworkCooldown = 150;
+
+        /* ===== AUDIO ===== */
+        let audio = null;
+        let audioContext = null;
+        let isAudioInitialized = false;
+
+        function createAndPlayAudio() {
+            if (isAudioInitialized) return;
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    audio = new Audio();
+                    audio.src = 'https://www.dl.dropboxusercontent.com/scl/fi/0lgxovpr1gutnet2prhe7/sound.mp3?rlkey=y3xpanfdepdvlvodt1b6h6w30';
+                    audio.loop = true;
+                    audio.volume = 0.2;
+                }
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                audio.play().then(() => isAudioInitialized = true).catch(() => {});
+            } catch {}
+        }
+
+        /* ===== CLASES ===== */
+
+        class Star {
+            constructor() {
+                this.reset();
+                this.twinklePhase = Math.random() * Math.PI * 2;
+                this.twinkleSpeed = Math.random() * 0.05 + 0.02;
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+
+                const isMobile = window.innerWidth < 768;
+                this.size = isMobile
+                    ? Math.random() * 0.5 + 0.3
+                    : Math.random() * 1.0 + 0.5;
+
+                this.maxAlpha = Math.random() * 0.7 + 0.3;
+            }
+
+            update() {
+                this.twinklePhase += this.twinkleSpeed;
+                this.currentAlpha = this.maxAlpha * (Math.sin(this.twinklePhase) * 0.5 + 0.5);
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 200, 220, ${this.currentAlpha})`;
+                ctx.fill();
+            }
+        }
+
+        class Firework {
+            constructor(x, y) {
+                this.x = x;
+                this.y = canvas.height;
+                this.targetX = x;
+                this.targetY = y;
+                this.exploded = false;
+                this.particles = [];
+                this.color = this.getRandomColor();
+            }
+
+            getRandomColor() {
+                const colors = [
+                    [255, 182, 193],
+                    [255, 105, 180],
+                    [221, 160, 221],
+                    [186, 85, 211],
+                    [255, 215, 0],
+                    [255, 240, 245],
+                    [199, 21, 133],
+                    [238, 130, 238]
+                ];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            update() {
+                if (!this.exploded) {
+                    this.y += (this.targetY - this.y) * 0.06;
+                    this.x += (this.targetX - this.x) * 0.06;
+                    if (Math.abs(this.targetY - this.y) < 10) this.explode();
+                } else {
+                    this.particles = this.particles.filter(p => p.update());
+                }
+            }
+
+            explode() {
+                this.exploded = true;
+                for (let i = 0; i < 150; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 5 + 1;
+                    this.particles.push(new Particle(
+                        this.x, this.y,
+                        Math.cos(angle) * speed,
+                        Math.sin(angle) * speed,
+                        this.color
+                    ));
+                }
+            }
+
+            draw() {
+                if (!this.exploded) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgb(${this.color.join(',')})`;
+                    ctx.fill();
+                } else {
+                    this.particles.forEach(p => p.draw());
+                }
+            }
+        }
+
+        class Particle {
+            constructor(x, y, vx, vy, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.life = 1;
+                this.decay = Math.random() * 0.005 + 0.004;
+                this.gravity = 0.04;
+            }
+
+            update() {
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+                this.vy += this.gravity;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+                return this.life > 0;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.x - this.vx * 3, this.y - this.vy * 3);
+                ctx.lineTo(this.x, this.y);
+                ctx.strokeStyle = `rgba(${this.color.join(',')}, ${this.life})`;
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+        }
+
+        for (let i = 0; i < 450; i++) stars.push(new Star());
+
+        function handleInteraction(e) {
+            createAndPlayAudio();
+            const now = Date.now();
+            if (now - lastFireworkTime > fireworkCooldown) {
+                const x = e.clientX || e.touches[0].clientX;
+                const y = e.clientY || e.touches[0].clientY;
+                fireworks.push(new Firework(x, y));
+                lastFireworkTime = now;
+            }
+        }
+
+        document.addEventListener('click', handleInteraction);
+        document.addEventListener('touchstart', handleInteraction, { passive: false });
+
+        function animate() {
+            ctx.fillStyle = 'rgba(18, 0, 24, 0.25)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.globalCompositeOperation = 'lighter';
+            stars.forEach(s => { s.update(); s.draw(); });
+
+            fireworks.forEach((f, i) => {
+                f.update();
+                f.draw();
+                if (f.exploded && f.particles.length === 0) fireworks.splice(i, 1);
+            });
+
+            ctx.globalCompositeOperation = 'source-over';
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            stars.length = 0;
+            for (let i = 0; i < 450; i++) stars.push(new Star());
+        });
+
+        animate();
+    </script>
+</body>
+</html>
