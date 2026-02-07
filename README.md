@@ -14,7 +14,8 @@ Todo construido con **HTML, CSS y JavaScript Vanilla**, sin frameworks externos.
 
 ## 🚀 Ver en vivo
 
-👉 happy-new-year-kappa-jet.vercel.app/feliz2026.html
+👉  https://happy-new-year-kappa-jet.vercel.app/feliz2026.html
+
 (Esta es la entrada principal del proyecto)
 
 ---
